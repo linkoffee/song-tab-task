@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://cvgvtrfax6ws4"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_d6vdd"]
+[ext_resource type="Script" path="res://scripts/data/db.gd" id="1_hpbyc"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_d6vdd")
+
+[node name="db" type="Node" parent="."]
+script = ExtResource("1_hpbyc")

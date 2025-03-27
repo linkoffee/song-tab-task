@@ -1,0 +1,63 @@
+[gd_scene load_steps=3 format=3 uid="uid://dwxhkj86sygho"]
+
+[ext_resource type="Script" path="res://scripts/SongView.gd" id="1_8j31y"]
+[ext_resource type="Texture2D" uid="uid://cot2jv115u8i1" path="res://assets/ui/Bg.png" id="1_aeeww"]
+
+[node name="MainContainer" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 14.0
+offset_right = -24.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8j31y")
+
+[node name="Bg" type="Sprite2D" parent="."]
+position = Vector2(351, 613)
+texture = ExtResource("1_aeeww")
+
+[node name="SettingsContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="AutoScrollToggle" type="CheckBox" parent="SettingsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+text = "Скроллить автоматически"
+
+[node name="SpeedSlider" type="HSlider" parent="SettingsContainer"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+
+[node name="FontSizeSlider" type="HSlider" parent="SettingsContainer"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+
+[node name="ViewContainer" type="ScrollContainer" parent="."]
+custom_minimum_size = Vector2(0, 1000)
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="Content" type="RichTextLabel" parent="ViewContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0, 0, 0, 1)
+bbcode_enabled = true
+fit_content = true
+
+[node name="BackToListBtn" type="Button" parent="."]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 10
+theme_override_font_sizes/font_size = 70
+text = "Все песни"
