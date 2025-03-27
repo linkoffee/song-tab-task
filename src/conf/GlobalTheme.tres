@@ -1,0 +1,13 @@
+[gd_resource type="Theme" load_steps=4 format=3 uid="uid://c8k6st7cctdng"]
+
+[ext_resource type="FontFile" uid="uid://gwlvqlbh0ayi" path="res://assets/fonts/Tektur_Condensed-Medium.ttf" id="1_c7rl4"]
+[ext_resource type="Texture2D" uid="uid://b4xhufan4612" path="res://assets/ui/clear_cross.svg" id="1_keljs"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ydcf4"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+
+[resource]
+default_font = ExtResource("1_c7rl4")
+default_font_size = 25
+Button/styles/focus = SubResource("StyleBoxFlat_ydcf4")
+LineEdit/icons/clear = ExtResource("1_keljs")
