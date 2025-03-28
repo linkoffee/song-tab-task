@@ -1,17 +1,19 @@
 extends Node
 
+const SongLoader = preload("res://scripts/utils/SongLoader.gd")
+const SongFormatter = preload("res://scripts/utils/SongFormatter.gd")
+
 var db
 var db_path = "user://songs.db"
 
 func _ready():
 	init_database()
-	db.query("SELECT * FROM songs;")
+	load_songs_from_files()
 
 func init_database():
 	db = SQLite.new()
 	db.path = db_path
 	
-	# Создаем файл БД если его нет
 	if not FileAccess.file_exists(db_path):
 		var file = FileAccess.open(db_path, FileAccess.WRITE)
 		file.close()
@@ -22,24 +24,70 @@ func init_database():
 		return
 	
 	create_tables()
-	
-	if get_songs_count() == 0:
-		print("Database is empty, inserting sample songs...")
-		insert_sample_songs()
-	else:
-		print("Database already contains ", get_songs_count(), " songs")
 
 func create_tables():
+	var queries = [
+		"""CREATE TABLE IF NOT EXISTS songs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL,
+			artist TEXT,
+			content TEXT NOT NULL,
+			UNIQUE(title, artist) ON CONFLICT REPLACE
+		);""",
+		"CREATE INDEX IF NOT EXISTS idx_songs_title ON songs(title);",
+		"CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs(artist);"
+	]
+	
+	for query in queries:
+		if not db.query(query):
+			push_error("Failed to execute query: " + query)
+
+func load_songs_from_files():
+	if get_songs_count() > 0:
+		print("Songs already loaded, skipping...")
+		return
+	
+	var dir = DirAccess.open("res://songs/")
+	if not dir:
+		push_error("Cannot open songs directory!")
+		return
+	
+	var loader = SongLoader.new()
+	var formatter = SongFormatter.new()
+	var count = 0
+	
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while file_name != "":
+		if file_name.ends_with(".txt"):
+			var song_path = "res://songs/" + file_name
+			var song = loader.load_song(song_path)
+			if song:
+				var formatted_content = formatter.format_song(song)
+				save_song_to_db(song, formatted_content)
+				count += 1
+		file_name = dir.get_next()
+	
+	loader.queue_free()
+	formatter.queue_free()
+	print("Loaded", count, "songs from files")
+
+func save_song_to_db(song: Dictionary, formatted_content: String):
+	if not db:
+		push_error("Database not initialized!")
+		return
+	
 	var query = """
-	CREATE TABLE IF NOT EXISTS songs (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		title TEXT NOT NULL,
-		artist TEXT,
-		content TEXT NOT NULL
-	);
-	"""
+	INSERT INTO songs (title, artist, content)
+	VALUES ('%s', '%s', '%s')
+	""" % [
+		song.get("title", "").replace("'", "''"),
+		song.get("artist", "").replace("'", "''"),
+		formatted_content.replace("'", "''")
+	]
+	
 	if not db.query(query):
-		push_error("Failed to create table!")
+		push_error("Failed to save song to DB: " + song.get("title", "unknown"))
 
 func get_songs_count():
 	if not db.query("SELECT COUNT(*) as count FROM songs;"):
@@ -54,169 +102,31 @@ func get_song_by_id(id):
 	db.query("SELECT * FROM songs WHERE id = %d;" % id)
 	return db.query_result[0] if db.query_result else null
 
-func search_songs(term):
-	term = term.to_lower()
-	db.query("SELECT * FROM songs WHERE LOWER(title) LIKE '%%%s%%' OR LOWER(artist) LIKE '%%%s%%' ORDER BY title;" % [term, term])
+func search_songs(term: String) -> Array:
+	term = term.strip_edges()
+	if term.is_empty():
+		return get_all_songs()
+	
+	var safe_term = term.replace("'", "''").replace("%", "\\%").replace("_", "\\_")
+	
+	var any_pattern = "%%%s%%" % safe_term
+	var start_pattern = "%s%%" % safe_term
+	
+	var query = """
+	SELECT * FROM songs 
+	WHERE LOWER(title) LIKE LOWER('%s') 
+	   OR LOWER(artist) LIKE LOWER('%s')
+	ORDER BY 
+		CASE 
+			WHEN LOWER(title) LIKE LOWER('%s') THEN 0
+			WHEN LOWER(artist) LIKE LOWER('%s') THEN 1
+			ELSE 2
+		END,
+		title
+	""" % [any_pattern, any_pattern, start_pattern, start_pattern]
+	
+	if not db.query(query):
+		push_error("Search query failed: " + query)
+		return []
+	
 	return db.query_result
-
-func insert_sample_songs():
-	var sample_songs = [
-		{
-			"title": "Лесник",
-			"artist": "Король и Шут",
-			"content": "  Вступление: Em  C  Am  D   - 4 раза
-			
-   Em                  C          D
-Замученный дорогой, я выбился из сил
-	 Em                C         D
-И в доме лесника я ночлега попросил.
-	Em                    C           D
-С улыбкой добродушной старик меня впустил
-   Em                                    Am    
-И жестом дружелюбным на ужин пригласил. Хэй!
-
-	   Припев:
-	  Em                            C
-	 Будь как дома, путник, я ни в чем не откажу,
-			 Am                    D
-	 Я ни в чем не откажу, я ни в чем не откажу.
-	  Em                        C
-	 Множество историй, коль желаешь - расскажу,
-			 Am                       D
-	 Коль желаешь - расскажу, коль желаешь - расскажу.
-
-На улице темнело, сидел я за столом,
-Лесник сидел напротив, болтал о том, о сем,
-Что нет среди животных у старика врагов,
-Что нравится ему подкармливать волков.
-
-	   Припев
-
-И волки среди ночи, завыли под окном,
-Старик заулыбался и вдруг покинул дом.
-Но вскоре возвратился с ружьем наперевес:
-Друзья хотят покушать, пойдем, приятель, в лес.
-
-	   Припев"
-		},
-		{
-			"title": "Воля и разум",
-			"artist": "Ария",
-			"content": "E
-В глубокой шахте
-Который год
-Таится чудище змей
-Стальные нервы
-Стальная плоть
-Стальная хватка когтей
-
-Он копит силы
-Лениво ждет
-Направив в небо радар
-Одна ошибка
-Случайный взлет
-И неизбежен удар
-
-C       G      D      E
-Все во что ты навеки влюблен
-C      G   D
-Уничтожит разом
-C      G    D     E
-Тыщеглавый убийца-дракон
-C                    D
-Должен быть повержен он
-
-Смертельной данью
-Обложен мир
-Лишен покоя и сна
-Многоголосо
-Гудит эфир
-Опять на старте война
-
-Все во что ты навеки влюблен
-Уничтожит разом
-Тыщеглавый убийца-дракон
-Должен быть повержен он
-D
-Сильнее всяких войн
-E (основная тема)
-Воля и разум
-Воля и разум
-
-Пока не поздно
-Спасайте мир
-Нельзя нам больше терпеть
-Когда мы вместе
-То берегись
-Любому чудищу смерть
-
-Все во что ты навеки влюблен
-Уничтожит разом
-Тыщеглавый убийца-дракон
-Должен быть повержен он
-Сильнее всяких войн
-Воля и разум
-Воля и разум"
-		},
-		{
-			"title": "And I Love Her",
-			"artist": "The Beatles",
-			"content": "F#m        C#m
-I give her all my love
-F#m         C#m
-That's all I do
-F#m        C#m
-And if you saw my love
-A               H
-You'd love her too
-   E
-I love her
-
-She gives me everything
-And tenderly
-The kiss my lover brings
-She brings to me
-And I love her
-
-Припев:
-C#m         H
-А love like ours
-C#m         G#m
-Could never die
-C#m       G#m
-Аs long as I
-		  H
-Have you near me
-
-Bright are the stars that shine
-Dark is the sky
-I know this love of mine
-Will never die
-And I love her
-
-Bright are the stars that shine
-Dark is the sky
-I know this love of mine
-Will never die
-And I love her"
-		},
-	]
-	
-	db.query("BEGIN TRANSACTION;")
-	
-	for song in sample_songs:
-		var title = song["title"].replace("'", "''")
-		var artist = song["artist"].replace("'", "''")
-		var content = song["content"].replace("'", "''")
-		
-		var query = "INSERT INTO songs (title, artist, content) VALUES ('%s', '%s', '%s');" % [
-			title, artist, content
-		]
-		
-		if not db.query(query):
-			push_error("Failed to insert song: " + song["title"])
-	
-	if not db.query("COMMIT;"):
-		push_error("Failed to commit transaction!")
-	
-	print("Inserted", sample_songs.size(), "sample songs")
