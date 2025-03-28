@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dwxhkj86sygho"]
+[gd_scene load_steps=4 format=3 uid="uid://dwxhkj86sygho"]
 
 [ext_resource type="Script" path="res://scripts/SongView.gd" id="1_8j31y"]
 [ext_resource type="Texture2D" uid="uid://cot2jv115u8i1" path="res://assets/ui/Bg.png" id="1_aeeww"]
+[ext_resource type="FontFile" uid="uid://begel25ghpvh2" path="res://assets/fonts/Tektur_Condensed-Bold.ttf" id="3_477gv"]
 
 [node name="MainContainer" type="VBoxContainer"]
 anchors_preset = 15
@@ -36,10 +37,21 @@ text = "Скроллить автоматически"
 [node name="SpeedSlider" type="HSlider" parent="SettingsContainer"]
 custom_minimum_size = Vector2(100, 50)
 layout_mode = 2
+min_value = 33.0
+value = 33.0
 
 [node name="FontSizeSlider" type="HSlider" parent="SettingsContainer"]
 custom_minimum_size = Vector2(100, 50)
 layout_mode = 2
+min_value = 20.0
+max_value = 50.0
+value = 30.0
+
+[node name="TitleLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_477gv")
+theme_override_font_sizes/font_size = 30
 
 [node name="ViewContainer" type="ScrollContainer" parent="."]
 custom_minimum_size = Vector2(0, 1000)
@@ -48,12 +60,13 @@ horizontal_scroll_mode = 0
 vertical_scroll_mode = 2
 
 [node name="Content" type="RichTextLabel" parent="ViewContainer"]
+custom_minimum_size = Vector2(400, 600)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_colors/default_color = Color(0, 0, 0, 1)
-bbcode_enabled = true
 fit_content = true
+autowrap_mode = 0
 
 [node name="BackToListBtn" type="Button" parent="."]
 layout_mode = 2
