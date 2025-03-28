@@ -1,5 +1,6 @@
 extends Control
 
+@onready var title_label = $TitleLabel
 @onready var content_label = $ViewContainer/Content
 @onready var auto_scroll_toggle = $SettingsContainer/AutoScrollToggle
 @onready var speed_slider = $SettingsContainer/SpeedSlider
@@ -11,6 +12,7 @@ var db
 var auto_scroll_speed = 50
 var auto_scroll_active = false
 var current_song = null
+var song_formatter = preload("res://scripts/utils/SongFormatter.gd").new()
 
 func _ready():
 	back_button.pressed.connect(_on_back_pressed)
@@ -24,20 +26,13 @@ func set_song(song):
 		return
 		
 	current_song = song
+	title_label.text = "%s - %s" % [song.title, song.artist]
+	content_label.text = song.content
 	
-	if not is_instance_valid(content_label):
-		push_error("Content label is not valid!")
-		return
-	
-	if not song.has("content"):
-		push_error("Song data is missing 'content' field!")
-		return
- 
-	content_label.text = song["content"]
 	if font_size_slider:
 		update_font_size()
 	else:
-		call_deferred("update_font_size")
+		call_deferred("update_font_size")			
 
 func _process(delta):
 	if auto_scroll_active:
@@ -52,29 +47,18 @@ func _on_auto_scroll_toggled(button_pressed):
 		scroll_container.scroll_vertical = 0
 
 func _on_speed_changed(value):
-	auto_scroll_speed = value
+	auto_scroll_speed = value * 2
 
 func _on_font_size_changed(value):
 	update_font_size()
 
 func update_font_size():
-	if not is_instance_valid(content_label) or not current_song or not font_size_slider:
-		push_error("Cannot update font size - missing required components")
+	if not font_size_slider:
 		return
-	
-	if not current_song.has("content"):
-		push_error("Current song is missing content!")
-		return
-	
-	var font = content_label.get_theme_font("normal_font")
-	var font_size = font_size_slider.value
-	
-	var bbcode = current_song["content"]
-	bbcode = bbcode.replace("[", "[font_size=%d][" % (font_size * 1.2))
-	bbcode = bbcode.replace("]", "][/font_size]")
-	
-	content_label.text = ""
-	content_label.append_text(bbcode)
+		
+	var base_size = font_size_slider.value
+	content_label.add_theme_font_size_override("normal_font_size", base_size)
+	content_label.add_theme_font_size_override("bold_font_size", base_size * 1.1)
 
 func _on_back_pressed():
 	get_node("/root/Main").show_song_list()
